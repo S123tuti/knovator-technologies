@@ -1,5 +1,4 @@
-const userModle = require("../models/userModel");
-const postModle = require("../models/postModel");
+const userModel = require("../models/userModel");
 const postModel = require("../models/postModel");
 
 const isValidLatitude = (latitude) => {
@@ -27,7 +26,7 @@ const createPost = async (req, res) => {
     if(!isValidType(body))
         return res.status(400).send({status:true,msg:"please provide valid body"})
 
-    const validUser = await userModle.find({createdBy})
+    const validUser = await userModel.find({createdBy})
     if(!validUser) return res.status(400).send({status:false,"msg":"User not Exit"})
 
     const newPost ={
@@ -39,7 +38,7 @@ const createPost = async (req, res) => {
         coordinates: [parseFloat(longitude), parseFloat(latitude)]
       }
     };
-    let post = await postModle.create(newPost)
+    let post = await postModel.create(newPost)
     res.status(201).send({status:true,msg:"post created Successfully", post});
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -56,7 +55,7 @@ const getLocationData = async (req,res) =>
       return res.status(400).json({ message: 'Latitude and longitude are required' });
     }
 
-    const posts = await postModle.find({"createdBy":userId,
+    const posts = await postModel.find({"createdBy":userId,
       location: {
         $near: {
           $geometry: {
@@ -84,19 +83,18 @@ const updatePost = async(req, res) =>
         const postId = req.params.postId;
         const postUpdateData = req.body;
 
-        if (Object.keys(blogUpdatedData).length == 0) {
+        if (Object.keys(postUpdateData).length == 0) {
             return res.status(400).send({ status: false, msg: "Please enter Data to be updated" });
         }
         let post = await postModel.findOneAndUpdate(
-            { _id: postId, isDeleted: false },
+            { _id: postId},
             {
-                $set: { isPublished: true, body: postUpdateData.body, title: postUpdateData.title, publishedAt: new Date() },
-                $push: { tags: postUpdateData.tags, subcategory: blogUpdatedData.subcategory }
+                $set: {body: postUpdateData.body, title: postUpdateData.title},
             },
             { new: true });
 
             if (!post) {
-                return res.status(404).send({ status: false, msg: "The post is deleted" })
+                return res.status(404).send({ status: false, msg: "Post was deleted" })
             }
             return res.status(200).send({ status: true, data: post });
     
@@ -109,13 +107,16 @@ const updatePost = async(req, res) =>
     const deletePost = async function (req, res) {
         try {
             let postIdData = req.params.postId
-            let post = await blogModel.findById(postIdData)
+            let post = await postModel.findById(postIdData)
             // ======================== if the post is already deleted =======================================
-            if (post.isDeleted === true) {
+            if (!post) {
                 return res.status(404).send({ status: false, message: "The post is already deleted" })
             }
             //=============================== if post is not deleted and want to delete it ====================
-            let deletedPost = await postModelModel.findOneAndUpdate({ _id: postIdData }, { isDeleted: true, deletedAt: new Date() })
+
+            let userId = req.user._id
+
+            let deletedPost = await postModel.deleteOne({ _id: postIdData, createdBy: userId })
             return res.status(200).send({ status: true, msg: "Data is successfully deleted" })
         }
         catch (error) {
@@ -128,8 +129,8 @@ const getActiveCount = async (req,res) =>
     {
     try {
     const userId = req.user._id;
-    const activeCount = await postModle.countDocuments({createdBy:userId, active: true }).exec();
-    const inactiveCount = await postModle.countDocuments({createdBy:userId ,active: false }).exec();
+    const activeCount = await postModel.countDocuments({createdBy:userId, active: true }).exec();
+    const inactiveCount = await postModel.countDocuments({createdBy:userId ,active: false }).exec();
     
     res.send({status:true, activeCount,inactiveCount });
   } catch (error) {

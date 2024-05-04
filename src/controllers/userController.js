@@ -1,5 +1,5 @@
 const bcrypt = require("bcrypt");
-const userModle = require("../models/userModel");
+const userModel = require("../models/userModel");
 const jwt = require("jsonwebtoken");
 
 const isValidType = (value) => {
@@ -27,11 +27,11 @@ const registerUser = async (req, res) => {
 
      password =  await bcrypt.hash(password, 10);
 
-    const duplicateTitle = await userModle.findOne({ email });
+    const duplicateTitle = await userModel.findOne({ email });
     if (duplicateTitle)
         return res.status(400).send({ status: false, message: "Email Already Exist" });
 
-    let user = await userModle.create({fname,lname,email,password});
+    let user = await userModel.create({fname,lname,email,password});
 
     return res.status(201).send({status:false,msg:"Success",user})
   } 
@@ -53,14 +53,14 @@ const loginUser = async (req,res) =>
      if (isValidType(password)&&!/^(?!.\s)[A-Za-z\d@$#!%?&]{8,15}$/.test(password) )
           return res.status(400).send({ status: false, msg: "Please provide valid password" });
 
-    const user = await userModle.findOne({ email });
+    const user = await userModel.findOne({ email });
     if (!user)
         return res.status(400).send({ status: false, message: "User not Exist" });
 
     let actualPassword = await bcrypt.compare(password, user.password);
     if (!actualPassword)
       return res.status(401).send({ status: false, message: "Incorrect password" });
-    const token = jwt.sign({ userId: user._id }, 'test', { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user._id }, 'test', { expiresIn: '10h' });
 
     res.status(400).send({ status: true, token ,msg:"Userlogin successful"})
         
